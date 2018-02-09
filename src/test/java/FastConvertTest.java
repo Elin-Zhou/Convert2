@@ -1,6 +1,8 @@
 import bean.simple.Bean1;
 import bean.simple.Bean10;
 import bean.simple.Bean11;
+import bean.simple.Bean12;
+import bean.simple.Bean13;
 import bean.simple.Bean2;
 import bean.simple.Bean3;
 import bean.simple.Bean4;
@@ -8,6 +10,7 @@ import bean.simple.Bean6;
 import bean.simple.Bean7;
 import bean.simple.Bean8;
 import bean.simple.Bean9;
+import bean.simple.Enum1;
 import com.elin4it.convert.Convertor;
 import com.elin4it.convert.FastConvertorBuilder;
 import org.junit.Assert;
@@ -387,7 +390,7 @@ public class FastConvertTest {
 
 
     @Test
-    public void explicit_alias_source_to_source() {
+    public void explicit_alias_target_to_source() {
 
         Bean11 bean11 = new Bean11();
         bean11.setAa(123);
@@ -405,6 +408,45 @@ public class FastConvertTest {
         Assert.assertEquals(bean1.getB(), bean11.getBb());
         Assert.assertEquals(bean1.getC(), bean11.getCc(), 1);
         Assert.assertNotEquals(bean1.getD(), bean11.getDd());
+    }
+
+    @Test
+    public void enum_source_to_target() {
+
+        Bean12 bean12 = new Bean12();
+        bean12.setE1(Enum1.B);
+        bean12.setE2(1);
+        bean12.setA(5);
+
+        Convertor<Bean12, Bean13> convertor = FastConvertorBuilder.newBuilder(Bean12.class, Bean13.class).build();
+
+        Bean13 bean13 = convertor.toTarget(bean12);
+
+        Assert.assertEquals(Enum1.B.getCode(), bean13.getE1());
+        Assert.assertEquals(Enum1.A, bean13.getE2());
+        Assert.assertEquals(bean12.getA(), bean13.getA());
+
+
+    }
+
+
+    @Test
+    public void enum_target_to_source() {
+
+        Bean13 bean13 = new Bean13();
+        bean13.setE1(2);
+        bean13.setE2(Enum1.A);
+        bean13.setA(6);
+
+        Convertor<Bean12, Bean13> convertor = FastConvertorBuilder.newBuilder(Bean12.class, Bean13.class).build();
+
+        Bean12 bean12 = convertor.toSource(bean13);
+
+        Assert.assertEquals(Enum1.B, bean12.getE1());
+        Assert.assertEquals(Enum1.A.getCode(), bean12.getE2());
+        Assert.assertEquals(bean13.getA(), bean12.getA());
+
+
     }
 }
 

@@ -19,6 +19,11 @@ public enum TypeConvertType {
     AUTO_BOXING_UNBOXING,
 
     /**
+     * 枚举转换
+     */
+    ENUM_CONVERT,
+
+    /**
      * 不支持的转换
      */
     NOT_SUPPORT_CONVERT,

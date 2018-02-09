@@ -10,7 +10,9 @@ public class CodeInstanceDelegate {
 
     private StringBuilder stringBuilder = new StringBuilder();
 
-
+    public static CodeInstanceDelegate of(String varName) {
+        return new CodeInstanceDelegate(varName);
+    }
     public CodeInstanceDelegate(String varName) {
         stringBuilder.append(varName);
     }
@@ -34,6 +36,18 @@ public class CodeInstanceDelegate {
         return this;
     }
 
+    public CodeInstanceDelegate invoke(String methodName, String... parameters) {
+        CodeInstanceDelegate[] delegates = new CodeInstanceDelegate[parameters.length];
+        for (int index = 0; index < parameters.length; index++) {
+            delegates[index] = CodeInstanceDelegate.of(parameters[index]);
+        }
+        return invoke(methodName, delegates);
+    }
+
+    public CodeInstanceDelegate invoke(String methodName) {
+        stringBuilder.append(".").append(methodName).append("()");
+        return this;
+    }
     public StringBuilder getExpression() {
         return stringBuilder;
     }

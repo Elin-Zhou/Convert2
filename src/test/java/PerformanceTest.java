@@ -95,7 +95,7 @@ public class PerformanceTest {
         end = System.currentTimeMillis();
 
 
-        System.out.println("asmConvertor spend time: " + (end - start) + " ms");
+        System.out.println("FastConvertor spend time: " + (end - start) + " ms");
 
     }
 
