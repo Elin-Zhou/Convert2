@@ -5,8 +5,7 @@ import com.elin4it.convert.annotation.ConvertField;
 import com.elin4it.convert.enums.AutoCastType;
 import com.elin4it.convert.enums.TypeConvertType;
 import com.elin4it.convert.util.BeanUtil;
-import com.elin4it.convert.util.CodeInstanceDelegate;
-import com.elin4it.convert.util.CodeTemplate;
+import com.elin4it.convert.util.InstanceDelegate;
 import com.elin4it.convert.util.Pair;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -52,10 +51,6 @@ public class FastConvertorBuilder<S, T> {
             Short.class, Character.class, Integer.class, Long.class, Float.class, Double.class);
 
     private static final BiMap<Class<?>, Class<? extends Comparable>> BOXING_MAPPER = HashBiMap.create();
-
-    private BeanInfo sourceBeanInfo;
-
-    private BeanInfo targetBeanInfo;
 
     private Map<String, PropertyDescriptor> sourceDesciptorMap;
 
@@ -184,8 +179,8 @@ public class FastConvertorBuilder<S, T> {
      * @throws IntrospectionException
      */
     private void init() throws IntrospectionException {
-        sourceBeanInfo = Introspector.getBeanInfo(sourceClass);
-        targetBeanInfo = Introspector.getBeanInfo(targetClass);
+        BeanInfo sourceBeanInfo = Introspector.getBeanInfo(sourceClass);
+        BeanInfo targetBeanInfo = Introspector.getBeanInfo(targetClass);
 
         sourceFieldNames = getFieldsNames(sourceClass, sourceRootClass);
         targetFieldNames = getFieldsNames(targetClass, targetRootClass);
@@ -242,8 +237,8 @@ public class FastConvertorBuilder<S, T> {
                                            toFieldNames, Map<String, String> fieldAliasMapper) {
         StringBuilder sb = new StringBuilder("{");
 
-        sb.append(CodeTemplate.cast("$1", "from", fromClass));
-        sb.append(CodeTemplate.instance("to", toClass));
+        sb.append(InstanceDelegate.of("$1").cast(fromClass).assign("from", fromClass));
+        sb.append(InstanceDelegate.newInstance(toClass.getName()).assign("to", toClass));
 
         for (String propertyName : fromFieldNames) {
 
@@ -285,75 +280,75 @@ public class FastConvertorBuilder<S, T> {
             TypeConvertType typeConvertType = convertType(readType, writeType);
             switch (typeConvertType) {
                 case AUTO_BOXING_UNBOXING:
-                    tempVarName = autoBoxingAndAutoUnboxing(sb, propertyName, readMethod, writeMethod);
+                    tempVarName = autoBoxingAndAutoUnboxing(sb, readMethod, writeMethod);
                     break;
                 case NEED_NOT_CONVERT:
-                    tempVarName = "_temp$" + propertyName;
-                    sb.append(CodeTemplate.assign(new CodeInstanceDelegate("from").invoke(readMethod), tempVarName,
+                    tempVarName = getTempName();
+
+                    sb.append(InstanceDelegate.of("from").invoke(readMethod).cast(readType).assign(tempVarName,
                             readType));
                     break;
                 case ENUM_CONVERT:
-                    tempVarName = "_temp$" + propertyName;
-
-                    String mapName = enumMapName(readType, writeType);
-
-                    String readVarName = getTempName();
-                    if (readType == getBoxedClass(readType)) {
-                        //如果包装类型和原类型相同，有两种可能
-                        //1. 该类型本身为包装类型，则不需要转换
-                        //2. 该类型为枚举类型，不存在包装类型，即getBoxedClass方法返回本身
-                        sb.append(CodeTemplate.assign(new CodeInstanceDelegate("from").invoke(readMethod), readVarName,
-                                readType));
-                    } else {
-                        sb.append(CodeTemplate.assign(CodeInstanceDelegate.of(autoBoxing(new CodeInstanceDelegate
-                                ("from").invoke(readMethod).getExpression(), readType)), readVarName, getBoxedClass
-                                (writeType)));
-                    }
-
-                    String mapValueVarName = getTempName();
-                    sb.append(CodeTemplate.cast(CodeInstanceDelegate.of(mapName).invoke("get",
-                            readVarName), mapValueVarName, getBoxedClass(writeType)));
-                    sb.append(CodeTemplate.assign(CodeInstanceDelegate.of(autoBoxingAndAutoUnboxing(mapValueVarName,
-                            getBoxedClass(writeType), writeType)), tempVarName, writeType));
+                    tempVarName = enumConvert(sb, readMethod, readType, writeType);
                     break;
                 default:
                     continue;
             }
 
 
-            sb.append(new CodeInstanceDelegate("to").invoke(writeMethod.getName(), tempVarName).end());
+            sb.append(new InstanceDelegate("to").invoke(writeMethod.getName(), tempVarName).end());
         }
 
-
-        sb.append(CodeTemplate.getReturn("to"));
-
+        sb.append(InstanceDelegate.of("to").thenReturn());
         sb.append("}");
         return sb.toString();
+    }
+
+    private String enumConvert(StringBuilder sb, Method readMethod, Class<?> readType, Class<?> writeType) {
+        String tempVarName;
+        tempVarName = getTempName();
+
+        String mapName = enumMapName(readType, writeType);
+
+        String readVarName = getTempName();
+        if (readType == getBoxedClass(readType)) {
+            //如果包装类型和原类型相同，有两种可能
+            //1. 该类型本身为包装类型，则不需要转换
+            //2. 该类型为枚举类型，不存在包装类型，即getBoxedClass方法返回本身
+            sb.append(InstanceDelegate.of("from").invoke(readMethod).assign(readVarName, readType));
+        } else {
+            sb.append(InstanceDelegate.of(autoBoxing(new InstanceDelegate("from").invoke(readMethod)
+                    .getExpression(), readType)).assign(readVarName, getBoxedClass(writeType)));
+        }
+
+        String mapValueVarName = getTempName();
+        sb.append(InstanceDelegate.of(mapName).invoke("get", readVarName).cast(getBoxedClass(writeType))
+                .assign(mapValueVarName, getBoxedClass(writeType)));
+        sb.append(InstanceDelegate.of(autoBoxingAndAutoUnboxing(mapValueVarName, getBoxedClass(writeType), writeType))
+                .assign(tempVarName, writeType));
+        return tempVarName;
     }
 
     /**
      * 自动装箱拆箱
      *
      * @param sb
-     * @param propertyName
      * @param readMethod
      * @param writeMethod
      * @return
      */
-    private String autoBoxingAndAutoUnboxing(StringBuilder sb, String propertyName, Method readMethod, Method
-            writeMethod) {
-        String tempVarName = "temp$" + propertyName;
+    private String autoBoxingAndAutoUnboxing(StringBuilder sb, Method readMethod, Method writeMethod) {
+        String tempVarName = getTempName();
 
         AutoCastType autoCastType = useAutoCast(readMethod, writeMethod);
         Class<?> toType = writeMethod.getParameterTypes()[0];
 
         if (autoCastType == AutoCastType.BOXING) {
-            sb.append(CodeTemplate.assign(new CodeInstanceDelegate(toType.getSimpleName())
-                            .invoke("valueOf", new CodeInstanceDelegate("from").invoke(readMethod)),
-                    tempVarName, toType));
+            sb.append(InstanceDelegate.of(toType.getSimpleName()).invoke("valueOf", InstanceDelegate.of("from")
+                    .invoke(readMethod)).assign(tempVarName, toType));
         } else {
-            sb.append(CodeTemplate.assign(new CodeInstanceDelegate("from").invoke(readMethod).invoke(toType
-                    .getSimpleName() + "Value"), tempVarName, toType));
+            sb.append(InstanceDelegate.of("from").invoke(readMethod).invoke(toType.getSimpleName() + "Value").assign
+                    (tempVarName, toType));
         }
         return tempVarName;
     }
@@ -610,21 +605,21 @@ public class FastConvertorBuilder<S, T> {
                     Object enumObj = enumEntry.getKey();
                     Class<?> enumClass = enumObj.getClass();
                     String enumClassName = enumClass.getName();
-                    CodeInstanceDelegate enumDelegate;
+                    InstanceDelegate enumDelegate;
                     try {
                         Method name = enumClass.getMethod("name");
                         String enumName = (String) name.invoke(enumObj);
-                        enumDelegate = new CodeInstanceDelegate(enumClassName + "." + enumName);
+                        enumDelegate = new InstanceDelegate(enumClassName + "." + enumName);
 
                     } catch (Exception e) {
                         e.printStackTrace();
                         continue;
                     }
 
-                    CodeInstanceDelegate baseDelegate = new CodeInstanceDelegate(autoBoxing(enumEntry.getValue(),
+                    InstanceDelegate baseDelegate = new InstanceDelegate(autoBoxing(enumEntry.getValue(),
                             enumEntry.getValue().getClass()));
-                    sb.append(new CodeInstanceDelegate(enum2BaseName).invoke("put", enumDelegate, baseDelegate).end());
-                    sb.append(new CodeInstanceDelegate(base2EnumName).invoke("put", baseDelegate, enumDelegate).end());
+                    sb.append(new InstanceDelegate(enum2BaseName).invoke("put", enumDelegate, baseDelegate).end());
+                    sb.append(new InstanceDelegate(base2EnumName).invoke("put", baseDelegate, enumDelegate).end());
 
                 }
             }
@@ -648,7 +643,7 @@ public class FastConvertorBuilder<S, T> {
         } else {
             return value.toString();
         }
-        return CodeInstanceDelegate.of(boxedClass).invoke("valueOf", CodeInstanceDelegate.of(value.toString()))
+        return InstanceDelegate.of(boxedClass).invoke("valueOf", InstanceDelegate.of(value.toString()))
                 .getExpression().toString();
     }
 
@@ -662,7 +657,7 @@ public class FastConvertorBuilder<S, T> {
         } else {
             return valueString;
         }
-        return CodeInstanceDelegate.of(valueString).invoke(unBoxClass + "Value").getExpression().toString();
+        return InstanceDelegate.of(valueString).invoke(unBoxClass + "Value").getExpression().toString();
     }
 
     private Class<?> getBoxedClass(Class<?> baseClass) {

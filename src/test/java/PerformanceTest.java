@@ -1,7 +1,7 @@
 import bean.simple.Bean1;
 import bean.simple.Bean2;
-import com.elin4it.convert.FastConvertorBuilder;
 import com.elin4it.convert.Convertor;
+import com.elin4it.convert.FastConvertorBuilder;
 import com.elin4it.convert.SimpleConvertorBuilder;
 import net.sf.cglib.beans.BeanCopier;
 import org.junit.Assert;
@@ -23,9 +23,18 @@ public class PerformanceTest {
 
 
         Convertor<Bean1, Bean2> simpleConvertor = SimpleConvertorBuilder.newBuilder(Bean1.class, Bean2.class).build();
-        Convertor<Bean1, Bean2> asmConvertor = FastConvertorBuilder.newBuilder(Bean1.class, Bean2.class).build();
 
+        long start = System.currentTimeMillis();
+        Convertor<Bean1, Bean2> fastConvertor = FastConvertorBuilder.newBuilder(Bean1.class, Bean2.class).build();
+        long end = System.currentTimeMillis();
+        System.out.println("fastConvertor create spend time: " + (end - start) + " ms");
+
+
+        start = System.currentTimeMillis();
         BeanCopier beanCopier = BeanCopier.create(Bean1.class, Bean2.class, false);
+        end = System.currentTimeMillis();
+        System.out.println("beanCopier create spend time: " + (end - start) + " ms");
+
 
         int times = 1000000;
 
@@ -35,7 +44,7 @@ public class PerformanceTest {
             list.add(i << 2 + 1);
         }
 
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
 
 
         for (int i = 0; i < times; i++) {
@@ -43,7 +52,7 @@ public class PerformanceTest {
             simpleConvertor.toTarget(bean1);
         }
 
-        long end = System.currentTimeMillis();
+        end = System.currentTimeMillis();
 
 
         System.out.println("simpleConvertor spend time: " + (end - start) + " ms");
@@ -88,7 +97,7 @@ public class PerformanceTest {
 
         for (int i = 0; i < times; i++) {
             bean1.setA(list.get(i));
-            Bean2 bean2 = asmConvertor.toTarget(bean1);
+            Bean2 bean2 = fastConvertor.toTarget(bean1);
             Assert.assertEquals(bean1.getA(), bean2.getA());
         }
 
@@ -111,7 +120,7 @@ public class PerformanceTest {
         }
 
         long end = System.currentTimeMillis();
-        System.out.println("asmConvertor spend time: " + (end - start) + " ms");
+        System.out.println("fastConvertor spend time: " + (end - start) + " ms");
 
 
         start = System.currentTimeMillis();
