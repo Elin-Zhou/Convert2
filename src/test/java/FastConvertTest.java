@@ -3,6 +3,10 @@ import bean.simple.Bean10;
 import bean.simple.Bean11;
 import bean.simple.Bean12;
 import bean.simple.Bean13;
+import bean.simple.Bean14;
+import bean.simple.Bean15;
+import bean.simple.Bean16;
+import bean.simple.Bean17;
 import bean.simple.Bean2;
 import bean.simple.Bean3;
 import bean.simple.Bean4;
@@ -11,6 +15,8 @@ import bean.simple.Bean7;
 import bean.simple.Bean8;
 import bean.simple.Bean9;
 import bean.simple.Enum1;
+import bean.simple.Enum2;
+import bean.simple.Enum3;
 import com.elin4it.convert.Convertor;
 import com.elin4it.convert.FastConvertorBuilder;
 import org.junit.Assert;
@@ -445,6 +451,78 @@ public class FastConvertTest {
         Assert.assertEquals(Enum1.B, bean12.getE1());
         Assert.assertEquals(Enum1.A.getCode(), bean12.getE2());
         Assert.assertEquals(bean13.getA(), bean12.getA());
+
+
+    }
+
+
+    @Test
+    public void long_enum_source_to_target() {
+
+        Bean14 bean14 = new Bean14();
+        bean14.setE1(Enum2.B);
+        bean14.setE2(1L);
+
+        Convertor<Bean14, Bean15> convertor = FastConvertorBuilder.newBuilder(Bean14.class, Bean15.class).build();
+
+        Bean15 bean15 = convertor.toTarget(bean14);
+
+        Assert.assertEquals((Long) Enum2.B.getCode(), bean15.getE1());
+        Assert.assertEquals(Enum2.A, bean15.getE2());
+
+
+    }
+
+
+    @Test
+    public void long_enum_target_to_source() {
+
+        Bean15 bean15 = new Bean15();
+        bean15.setE1(2L);
+        bean15.setE2(Enum2.A);
+
+        Convertor<Bean14, Bean15> convertor = FastConvertorBuilder.newBuilder(Bean14.class, Bean15.class).build();
+
+        Bean14 bean14 = convertor.toSource(bean15);
+
+        Assert.assertEquals(Enum2.B, bean14.getE1());
+        Assert.assertEquals(Enum2.A.getCode(), bean14.getE2());
+
+
+    }
+
+
+    @Test
+    public void byte_enum_source_to_target() {
+
+        Bean16 bean16 = new Bean16();
+        bean16.setE1(Enum3.B);
+        bean16.setE2((byte) 1);
+
+        Convertor<Bean16, Bean17> convertor = FastConvertorBuilder.newBuilder(Bean16.class, Bean17.class).build();
+
+        Bean17 bean17 = convertor.toTarget(bean16);
+
+        Assert.assertEquals(Enum3.B.getCode(), bean17.getE1());
+        Assert.assertEquals(Enum3.A, bean17.getE2());
+
+
+    }
+
+
+    @Test
+    public void byte_enum_target_to_source() {
+
+        Bean17 bean17 = new Bean17();
+        bean17.setE1((byte) 2);
+        bean17.setE2(Enum3.A);
+
+        Convertor<Bean16, Bean17> convertor = FastConvertorBuilder.newBuilder(Bean16.class, Bean17.class).build();
+
+        Bean16 bean16 = convertor.toSource(bean17);
+
+        Assert.assertEquals(Enum3.B, bean16.getE1());
+        Assert.assertEquals(Enum3.A.getCode(), (byte) bean16.getE2());
 
 
     }

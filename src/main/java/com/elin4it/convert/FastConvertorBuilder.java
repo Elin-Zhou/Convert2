@@ -10,6 +10,8 @@ import com.elin4it.convert.util.Pair;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.CtClass;
@@ -51,6 +53,12 @@ public class FastConvertorBuilder<S, T> {
             Short.class, Character.class, Integer.class, Long.class, Float.class, Double.class);
 
     private static final BiMap<Class<?>, Class<? extends Comparable>> BOXING_MAPPER = HashBiMap.create();
+
+    private static final Map<Class<? extends Comparable>, String> TYPE_SUFFIX = ImmutableMap.of(Long.class, "L", Double
+            .class, "D", Float.class, "F");
+
+    private static final Set<Class<?>> NEED_CAST_LITERAL_TYPE = ImmutableSet.of(byte.class, Byte.class, Short.class,
+            short.class);
 
     private Map<String, PropertyDescriptor> sourceDesciptorMap;
 
@@ -317,8 +325,8 @@ public class FastConvertorBuilder<S, T> {
             //2. 该类型为枚举类型，不存在包装类型，即getBoxedClass方法返回本身
             sb.append(InstanceDelegate.of("from").invoke(readMethod).assign(readVarName, readType));
         } else {
-            sb.append(InstanceDelegate.of(autoBoxing(new InstanceDelegate("from").invoke(readMethod)
-                    .getExpression(), readType)).assign(readVarName, getBoxedClass(writeType)));
+            sb.append(autoBoxing(new InstanceDelegate("from").invoke(readMethod), readType).assign(readVarName,
+                    getBoxedClass(writeType)));
         }
 
         String mapValueVarName = getTempName();
@@ -528,7 +536,7 @@ public class FastConvertorBuilder<S, T> {
                 //表示在该枚举中找不到对应类型的字段,或同类型字段有多个，无法判断根据哪一个进行转换，则无法转换
                 continue;
             }
-            Pair pair = Pair.of(enumClass, baseClass);
+            Pair pair = Pair.of(enumClass, getBoxedClass(baseClass));
             if (enumPairCache.contains(pair)) {
                 //如果该映射关系已存在，则跳过
                 continue;
@@ -634,16 +642,39 @@ public class FastConvertorBuilder<S, T> {
                 ("\\.", "");
     }
 
-    private String autoBoxing(Object value, Class<?> type) {
-        String boxedClass;
+    private InstanceDelegate autoBoxing(InstanceDelegate value, Class<?> type) {
+        Class<?> boxedClass;
         if (BOXING_MAPPER.containsKey(type)) {
-            boxedClass = BOXING_MAPPER.get(type).getName();
+            boxedClass = BOXING_MAPPER.get(type);
         } else if (BOXING_MAPPER.containsValue(type)) {
-            boxedClass = type.getName();
+            boxedClass = type;
+        } else {
+            return value;
+        }
+        if (NEED_CAST_LITERAL_TYPE.contains(type)) {
+            value = value.cast(type);
+        }
+        return InstanceDelegate.of(boxedClass.getName()).invoke("valueOf", value);
+    }
+
+    private String autoBoxing(Object value, Class<?> type) {
+        Class<?> boxedClass;
+        if (BOXING_MAPPER.containsKey(type)) {
+            boxedClass = BOXING_MAPPER.get(type);
+        } else if (BOXING_MAPPER.containsValue(type)) {
+            boxedClass = type;
         } else {
             return value.toString();
         }
-        return InstanceDelegate.of(boxedClass).invoke("valueOf", InstanceDelegate.of(value.toString()))
+        String suffix = TYPE_SUFFIX.get(boxedClass);
+        suffix = suffix == null ? "" : suffix;
+
+        String prefix = "";
+        if (NEED_CAST_LITERAL_TYPE.contains(type)) {
+            prefix = "(" + BOXING_MAPPER.inverse().get(boxedClass).getName() + ")";
+        }
+
+        return InstanceDelegate.of(boxedClass.getName()).invoke("valueOf", InstanceDelegate.of(prefix + value + suffix))
                 .getExpression().toString();
     }
 

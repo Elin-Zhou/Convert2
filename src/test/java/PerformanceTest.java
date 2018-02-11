@@ -1,5 +1,8 @@
 import bean.simple.Bean1;
 import bean.simple.Bean2;
+import bean.simple.Bean3;
+import bean.simple.Bean4;
+import bean.simple.Bean6;
 import com.elin4it.convert.Convertor;
 import com.elin4it.convert.FastConvertorBuilder;
 import com.elin4it.convert.SimpleConvertorBuilder;
@@ -28,7 +31,6 @@ public class PerformanceTest {
         Convertor<Bean1, Bean2> fastConvertor = FastConvertorBuilder.newBuilder(Bean1.class, Bean2.class).build();
         long end = System.currentTimeMillis();
         System.out.println("fastConvertor create spend time: " + (end - start) + " ms");
-
 
         start = System.currentTimeMillis();
         BeanCopier beanCopier = BeanCopier.create(Bean1.class, Bean2.class, false);
