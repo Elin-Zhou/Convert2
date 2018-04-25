@@ -72,7 +72,7 @@ public class FastConvertorBuilder<S, T> {
 
     private Map<String, String> targetieldAliasMapper = new HashMap<>();
 
-    private Map<Pair<Class<?>, Class<?>>, Map> enumPairMap;
+    private Map<Pair<Class<?>, Class<?>>, Map<Object, Object>> enumPairMap;
 
     private int tempValueNameCount = 0;
 
@@ -166,13 +166,12 @@ public class FastConvertorBuilder<S, T> {
                 convertorClass.addMethod(toTarget);
 
 
-//                convertorClass.writeFile("target/classes");
+                convertorClass.writeFile("target/classes");
 
                 clazz = convertorClass.toClass();
             }
-            Convertor<S, T> instance = (Convertor<S, T>) BeanUtil.instantiate(clazz);
+            return (Convertor<S, T>) BeanUtil.instantiate(clazz);
 
-            return instance;
 
         } catch (Exception e) {
             throw new ConvertException(e);
@@ -303,7 +302,6 @@ public class FastConvertorBuilder<S, T> {
                     continue;
             }
 
-
             sb.append(new InstanceDelegate("to").invoke(writeMethod.getName(), tempVarName).end());
         }
 
@@ -326,15 +324,17 @@ public class FastConvertorBuilder<S, T> {
             sb.append(InstanceDelegate.of("from").invoke(readMethod).assign(readVarName, readType));
         } else {
             sb.append(autoBoxing(new InstanceDelegate("from").invoke(readMethod), readType).assign(readVarName,
-                    getBoxedClass(writeType)));
+                    getBoxedClass(readType)));
         }
+
+        sb.append(InstanceDelegate.defineVariable(tempVarName, writeType.getName()));
 
         String mapValueVarName = getTempName();
         sb.append(InstanceDelegate.of(mapName).invoke("get", readVarName).cast(getBoxedClass(writeType))
                 .assign(mapValueVarName, getBoxedClass(writeType)));
-        sb.append(InstanceDelegate.of(autoBoxingAndAutoUnboxing(mapValueVarName, getBoxedClass(writeType), writeType))
-                .assign(tempVarName, writeType));
-        return tempVarName;
+        String zeroValue = zeroValue(writeType);
+        return mapValueVarName + "==null?" + zeroValue + ":" + autoBoxingAndAutoUnboxing(mapValueVarName,
+                getBoxedClass(writeType), writeType);
     }
 
     /**
@@ -364,7 +364,6 @@ public class FastConvertorBuilder<S, T> {
     private String autoBoxingAndAutoUnboxing(String varName, Class<?> fromClass, Class<?> toClass) {
 
         AutoCastType autoCastType = useAutoCast(fromClass, toClass);
-
         if (autoCastType == AutoCastType.BOXING) {
             return autoBoxing(varName, fromClass);
         } else if (autoCastType == AutoCastType.UNBOXING) {
@@ -536,7 +535,7 @@ public class FastConvertorBuilder<S, T> {
                 //表示在该枚举中找不到对应类型的字段,或同类型字段有多个，无法判断根据哪一个进行转换，则无法转换
                 continue;
             }
-            Pair pair = Pair.of(enumClass, getBoxedClass(baseClass));
+            Pair<Class<?>, Class<?>> pair = Pair.of(enumClass, getBoxedClass(baseClass));
             if (enumPairCache.contains(pair)) {
                 //如果该映射关系已存在，则跳过
                 continue;
@@ -554,7 +553,7 @@ public class FastConvertorBuilder<S, T> {
                 continue;
             }
 
-            Map enum2Base = new HashMap(enums.size());
+            Map<Object, Object> enum2Base = new HashMap<>(enums.size());
 
             baseField.setAccessible(true);
             for (Object anEnum : enums) {
@@ -589,7 +588,7 @@ public class FastConvertorBuilder<S, T> {
             CtClass mapClass = classPool.getCtClass(Map.class.getName());
             CtClass hashMapClass = classPool.getCtClass(HashMap.class.getName());
 
-            for (Map.Entry<Pair<Class<?>, Class<?>>, Map> pairMapEntry : enumPairMap.entrySet()) {
+            for (Map.Entry<Pair<Class<?>, Class<?>>, Map<Object, Object>> pairMapEntry : enumPairMap.entrySet()) {
                 Pair<Class<?>, Class<?>> pair = pairMapEntry.getKey();
 
                 String enum2BaseName = enumMapName(pair._1(), pair._2());
@@ -604,7 +603,7 @@ public class FastConvertorBuilder<S, T> {
                 convertorClass.addField(base2EnumField, CtField.Initializer.byNew(hashMapClass));
 
 
-                Map enumMap = pairMapEntry.getValue();
+                Map<Object, Object> enumMap = pairMapEntry.getValue();
 
 
                 for (Object o : enumMap.entrySet()) {
@@ -674,6 +673,14 @@ public class FastConvertorBuilder<S, T> {
             prefix = "(" + BOXING_MAPPER.inverse().get(boxedClass).getName() + ")";
         }
 
+        if (boxedClass.equals(String.class)) {
+            prefix = "\"";
+            suffix = "\"";
+        } else if (boxedClass.equals(Character.class)) {
+            prefix = "\'";
+            suffix = "\'";
+        }
+
         return InstanceDelegate.of(boxedClass.getName()).invoke("valueOf", InstanceDelegate.of(prefix + value + suffix))
                 .getExpression().toString();
     }
@@ -700,6 +707,17 @@ public class FastConvertorBuilder<S, T> {
 
     private String getTempName() {
         return "_temp$" + (tempValueNameCount++);
+    }
+
+
+    private String zeroValue(Class<?> clazz) {
+        if (!BASICS.contains(clazz)) {
+            return "null";
+        }
+        if (clazz == boolean.class) {
+            return "false";
+        }
+        return "(" + clazz.getSimpleName() + ")0";
     }
 
 }

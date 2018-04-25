@@ -17,6 +17,7 @@ import bean.simple.Bean9;
 import bean.simple.Enum1;
 import bean.simple.Enum2;
 import bean.simple.Enum3;
+import bean.simple.temp.Bean16$$Bean17$$Convertor$$ee4161d49f84e5095c68f2abb383a872;
 import com.elin4it.convert.Convertor;
 import com.elin4it.convert.FastConvertorBuilder;
 import org.junit.Assert;
@@ -414,6 +415,39 @@ public class FastConvertTest {
         Assert.assertEquals(bean1.getB(), bean11.getBb());
         Assert.assertEquals(bean1.getC(), bean11.getCc(), 1);
         Assert.assertNotEquals(bean1.getD(), bean11.getDd());
+    }
+
+    @Test
+    public void empty_enum_source_to_target() {
+
+        Bean12 bean12 = new Bean12();
+
+        Convertor<Bean12, Bean13> convertor = FastConvertorBuilder.newBuilder(Bean12.class, Bean13.class).build();
+
+        Bean13 bean13 = convertor.toTarget(bean12);
+
+        Assert.assertEquals(0, bean13.getE1());
+        Assert.assertEquals(null, bean13.getE2());
+        Assert.assertEquals(0, bean13.getA());
+
+
+    }
+
+
+    @Test
+    public void empty_enum_target_to_source() {
+
+        Bean13 bean13 = new Bean13();
+
+        Convertor<Bean12, Bean13> convertor = FastConvertorBuilder.newBuilder(Bean12.class, Bean13.class).build();
+
+        Bean12 bean12 = convertor.toSource(bean13);
+
+        Assert.assertEquals(null, bean12.getE1());
+        Assert.assertEquals(0, bean12.getE2());
+        Assert.assertEquals(0, bean12.getA());
+
+
     }
 
     @Test

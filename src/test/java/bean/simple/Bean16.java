@@ -10,6 +10,10 @@ public class Bean16 {
 
     private Byte e2;
 
+    private Enum4 e3;
+
+    private Character e4;
+
     public Enum3 getE1() {
         return e1;
     }
@@ -24,5 +28,21 @@ public class Bean16 {
 
     public void setE2(Byte e2) {
         this.e2 = e2;
+    }
+
+    public Enum4 getE3() {
+        return e3;
+    }
+
+    public void setE3(Enum4 e3) {
+        this.e3 = e3;
+    }
+
+    public Character getE4() {
+        return e4;
+    }
+
+    public void setE4(Character e4) {
+        this.e4 = e4;
     }
 }

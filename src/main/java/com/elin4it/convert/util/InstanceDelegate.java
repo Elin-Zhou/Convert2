@@ -89,7 +89,18 @@ public class InstanceDelegate {
     }
 
     public String assign(String newVarName, Class<?> clazz) {
-        return clazz.getName() + " " + newVarName + " = " + stringBuilder.append(";").toString();
+        return assign(newVarName, clazz, true);
+    }
+
+    public String assign(String newVarName, Class<?> clazz, boolean isNew) {
+        if (isNew) {
+            return clazz.getName() + " " + newVarName + " = " + stringBuilder.append(";").toString();
+        }
+        return newVarName + " = " + stringBuilder.append(";").toString();
+    }
+
+    public static String defineVariable(String newVarName, String className) {
+        return className + " " + newVarName + ";";
     }
 
     public String thenReturn() {
