@@ -3,6 +3,7 @@ import bean.simple.Bean2;
 import bean.simple.Bean3;
 import bean.simple.Bean4;
 import bean.simple.Bean6;
+import com.alibaba.fastjson.JSON;
 import com.elin4it.convert.Convertor;
 import com.elin4it.convert.FastConvertorBuilder;
 import com.elin4it.convert.SimpleConvertorBuilder;
@@ -137,5 +138,20 @@ public class PerformanceTest {
         System.out.println("beancopire spend time: " + (end - start) + " ms");
     }
 
+
+    @Test
+    public void autoPackage() {
+
+        BeanCopier beanCopier = BeanCopier.create(Bean1.class, Bean2.class, false);
+
+        Bean1 bean1 = new Bean1();
+        bean1.setA(1);
+
+        Bean2 bean2 = new Bean2();
+        beanCopier.copy(bean1, bean2, null);
+
+        System.out.println(JSON.toJSONString(bean2));
+
+    }
 
 }

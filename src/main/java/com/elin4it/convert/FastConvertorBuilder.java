@@ -129,6 +129,7 @@ public class FastConvertorBuilder<S, T> {
         return this;
     }
 
+    @SuppressWarnings("unchecked")
     public Convertor<S, T> build() {
 
         try {
@@ -215,12 +216,10 @@ public class FastConvertorBuilder<S, T> {
         stringBuilder.append("Convertor").append("$$");
 
 
-        StringBuilder code = new StringBuilder();
-        code.append(sourceClass.hashCode()).append("$$").append(targetClass.hashCode());
-        code.append(sourceRootClass.getName()).append(targetRootClass.getName());
-        code.append(JSON.toJSONString(sourceAliasMap)).append(JSON.toJSONString(targetAliasMap));
-
-        stringBuilder.append(DigestUtils.md5Hex(code.toString()));
+        String code = sourceClass.hashCode() + "$$" + targetClass.hashCode() +
+                sourceRootClass.getName() + targetRootClass.getName() +
+                JSON.toJSONString(sourceAliasMap) + JSON.toJSONString(targetAliasMap);
+        stringBuilder.append(DigestUtils.md5Hex(code));
 
         return stringBuilder.toString();
 
@@ -339,7 +338,6 @@ public class FastConvertorBuilder<S, T> {
 
     /**
      * 自动装箱拆箱
-     *
      * @param sb
      * @param readMethod
      * @param writeMethod

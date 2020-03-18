@@ -19,13 +19,13 @@ import java.util.Set;
  */
 public class SimpleConvertorBuilder<S, T> {
 
-    Class<S> sourceClass;
-    Class<T> targetClass;
+    private Class<S> sourceClass;
+    private Class<T> targetClass;
 
 
-    Class<?> sourceRootClass = Object.class;
+    private Class<?> sourceRootClass = Object.class;
 
-    Class<?> targetRootClass = Object.class;
+    private Class<?> targetRootClass = Object.class;
 
 
     private SimpleConvertorBuilder(Class<S> sourceClass, Class<T> targetClass) {
@@ -34,7 +34,7 @@ public class SimpleConvertorBuilder<S, T> {
     }
 
     public static <S, T> SimpleConvertorBuilder<S, T> newBuilder(Class<S> sourceClass, Class<T> targetClass) {
-        return new SimpleConvertorBuilder(sourceClass, targetClass);
+        return new SimpleConvertorBuilder<>(sourceClass, targetClass);
     }
 
 
@@ -52,8 +52,8 @@ public class SimpleConvertorBuilder<S, T> {
         return this;
     }
 
-    public Convertor build() {
-        return new SimpleConvertor(this);
+    public Convertor<S, T> build() {
+        return new SimpleConvertor<>(this);
     }
 
     static class SimpleConvertor<S, T> implements Convertor<S, T> {
@@ -98,7 +98,7 @@ public class SimpleConvertorBuilder<S, T> {
             }
         }
 
-        SimpleConvertor(SimpleConvertorBuilder builder) {
+        SimpleConvertor(SimpleConvertorBuilder<S, T> builder) {
             this(builder.sourceClass, builder.targetClass);
             this.sourceRootClass = builder.sourceRootClass;
             this.targetRootClass = builder.targetRootClass;
@@ -108,7 +108,7 @@ public class SimpleConvertorBuilder<S, T> {
 
             PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
 
-            Map<String, PropertyDescriptor> descriptorMap = new HashMap<String, PropertyDescriptor>((int)
+            Map<String, PropertyDescriptor> descriptorMap = new HashMap<>((int)
                     (propertyDescriptors.length * 1.5));
 
             for (PropertyDescriptor descriptor : propertyDescriptors) {
@@ -123,7 +123,7 @@ public class SimpleConvertorBuilder<S, T> {
 
         private Set<String> getFieldsNames(Class<?> clazz, Class<?> rootClass) {
 
-            Set<String> fields = new HashSet<String>();
+            Set<String> fields = new HashSet<>();
 
             for (; ; ) {
                 if (clazz.equals(rootClass) || clazz.equals(Object.class)) {

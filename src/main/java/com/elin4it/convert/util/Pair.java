@@ -15,7 +15,7 @@ public class Pair<T, U> {
         this._2 = _2;
     }
 
-    public static <T, U> Pair of(T _1, U _2) {
+    public static <T, U> Pair<T, U> of(T _1, U _2) {
         return new Pair<>(_1, _2);
     }
 
